@@ -1,30 +1,38 @@
 var connector = connector || {};
 var MongoClient = require('mongodb').MongoClient;
-var co = require('co');
 
 //Connection url: mongodb://<hostname>:<port>/<database>
-var url = 'mongodb://localhost:27017/testConnection';
+var url = 'mongodb://localhost:27017/test';
 
-connector.db = "",
+var db = null;
+
 // Use connect method to connect to server
-connector.connect = function connector$connect() {
-    MongoClient.connect(url, function (err, db) {
+var connect = function connector$connect(connectionCallback) {
+    MongoClient.connect(url, function (err, database) {
         if (err !== null) {
             console.error("Problem connecting to database: " + url + '\n' + err);
             return;
         }
         console.log("Connected successfully to host: " + url);
-        connector.db = db;
+        connectionCallback(database);
     });
 };
 
-connector.read = function connector$read(database, queryParameters){
-    co(function* (){
+var read = function connector$read(collectionName, queryParameters){
+    return connect(function(db){
         if(db === null){
-            connector.connect();
+            return []
         }
-        
-    });
+        return db.collection(collectionName, function(col){
+            if (col === null){
+                return [];
+            }
+            var result = col.find(queryParameters);
+            db.close();
+            return result.toArray();
+        })
+    })
 }
 
 module.exports = connector;
+module.exports.read = read;

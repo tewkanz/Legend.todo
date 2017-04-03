@@ -1,26 +1,29 @@
 var viewTest = viewTest || {}
 var handleBars = require('Handlebars');
-var connector = require('/database/connector')
+var connector = require('../../database/connector')
 
-viewTest.getData() = function viewTest$getData(){
+var getData = function viewTest$getData(){
     var content = {}
     var body = "";
     // get some data from the database
-    var cursor = connector.read("test", { _id: 1});
+    var cursor = connector.read("test", { "_id": 1}, function(value){
+        if(value !== null){
+            var content = {};
+            content.title = "Test loading data from the database!";
+            content.documents = value;
+            content.document = formatDocument;
+            return content;
+        }
+    })
     if (cursor === null){
-        content.title = "An error has occurred."
-        content.body = "Could not find test record."
-        return content;
+        return new Promise(function(resolve, reject){
+            var content = {};
+            content.title = "An error has occurred.";
+            content.documents = ["Could not find test record."];
+            resolve(content);
+        });
     }
-    // make that data into html elements
-    content.documents = []
-    while(yield cursor.hasNext()){
-        var document = cursor.next();
-        content.documents.push(document);
-    }
-    content.document = formatDocument;
-    // return
-    return document;
+    return cursor;  
 }
 
 var formatDocument = function viewTest$formatDocument(){
@@ -29,4 +32,9 @@ var formatDocument = function viewTest$formatDocument(){
     element = element + "<p>" + Handlebars.escapeExpression(this.content) + "</p>"
     return Handlebars.SafeString(element);
 }
+
+var render = function viewTest$render(req, res, next){
+    Promise.resolve(getData()).then(function(value){ console.log(value); res.render('viewTest/viewTest', value); })
+}
 module.exports = viewTest
+module.exports.render = render
