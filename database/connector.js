@@ -2,36 +2,54 @@ var connector = connector || {};
 var MongoClient = require('mongodb').MongoClient;
 
 //Connection url: mongodb://<hostname>:<port>/<database>
-var url = 'mongodb://localhost:27017/test';
+var url = 'mongodb://legend.todo:password@localhost:27017/test';
 
 var db = null;
 
 // Use connect method to connect to server
 var connect = function connector$connect(connectionCallback) {
-    MongoClient.connect(url, function (err, database) {
+    return MongoClient.connect(url).then(function (database) {
+            console.log("Connected successfully to host: " + url);
+            return database
+    },
+    function(err){
         if (err !== null) {
-            console.error("Problem connecting to database: " + url + '\n' + err);
-            return;
+            console.error("Problem connecting to database: " + url + '\n' + err.message)
         }
-        console.log("Connected successfully to host: " + url);
-        connectionCallback(database);
-    });
-};
-
+    }).then(connectionCallback);
+}
 var read = function connector$read(collectionName, queryParameters){
     return connect(function(db){
         if(db === null){
-            return []
+            return Promise.resolve([]);
         }
-        return db.collection(collectionName, function(col){
-            if (col === null){
-                return [];
-            }
-            var result = col.find(queryParameters);
-            db.close();
-            return result.toArray();
-        })
-    })
+        return new Promise(function(resolve, reject) {
+            var options = {};
+            options.strict = true;
+            db.collection(collectionName, options, function(error, col){
+                if (col === null){
+                    reject(Error(error.message));
+                }
+                else{
+                    resolve(col);
+                }
+            })
+        }).then(function(col){
+                var result = col.find(queryParameters);
+                return new Promise(function(resolve, reject) {
+                    result.toArray(function(error, value){
+                        console.log("Database closed.");
+                        db.close();
+                        if(value !== null){
+                            resolve(value);
+                        }
+                        else{
+                            reject(Error(error.message));
+                        }
+                    });
+                });
+            }); 
+    });
 }
 
 module.exports = connector;

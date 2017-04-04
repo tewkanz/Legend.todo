@@ -5,8 +5,9 @@
     <link rel='stylesheet' href='/stylesheets/style.css' />
   </head>
   <body>
-    {{#documents}}
-        {{document}}
-    {{/documents}}
+    {{#each documents}}
+        <h1>{{title}}</h1>
+        <p>{{content}}<p>
+    {{/each}}
   </body>
 </html>
