@@ -50,7 +50,58 @@ var read = function connector$read(collectionName, queryParameters){
                 });
             }); 
     });
-}
+};
+/**
+ * Basic function for writing a document to the MongoDB database
+ * 
+ * @param {string} collectionName 
+ * @param {string} id
+ * @param {Object} document 
+ * @returns {Promise<string>} - A promise that will reject with an error if failed and resolve to nothing
+ */
+var write = function connector$write(collectionName, id, document){
+    return setDatabaseContext(collectionName).then((col) => {
+        return new Promise((resolve,reject) => {
+            var queryObject = {}
+            if(!!id){
+                queryObject._id=id;
+            }
+            col.updateOne(queryObject, document, { upsert: true}, (error, result) => {
+                if(error !== null){
+                    reject(error);
+                }
+                else{
+                    resolve(result);
+                }
+            })
+        })
+    });
+};
 
+/**
+ * 
+ * 
+ * @param {string} collectionName 
+ * @returns {Promise<mongodb.collection>} - A promise that resolves to a mongodb collection reference, or rejects with an error 
+ */
+var setDatabaseContext = function connector$setDatabaseContext(collectionName){
+    return connect((db) =>{
+        if(db=== null){
+            return Promise.reject(Error("Could not connect to database."));
+        }
+        return new Promise((resolve, reject) => {
+            var options = { strict: false };
+            db.collection(collectionName, options, (error, col) =>{
+                if (col === null){
+                    reject(error.message);
+                }
+                else{
+                    resolve(col);
+                }
+            });
+        });
+    });
+}
 module.exports = connector;
 module.exports.read = read;
+module.exports.write = write;
